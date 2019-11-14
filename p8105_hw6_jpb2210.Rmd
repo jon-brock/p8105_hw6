@@ -1,0 +1,14 @@
+---
+title: "Data Science - Homework #6"
+author: "Jon Brock - JPB2210"
+output: 
+    github_document:
+        toc: TRUE
+        toc_depth: 2
+---
+
+```{r load packages, message = FALSE}
+library(tidyverse)
+```
+
+***
