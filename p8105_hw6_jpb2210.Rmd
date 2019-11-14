@@ -12,3 +12,24 @@ library(tidyverse)
 ```
 
 ***
+
+```{r load and tidy data}
+bw_df <- read_csv("./data/birthweight.csv", col_names = TRUE)
+
+bw_df %>% 
+    mutate(
+        babysex = case_when(
+            babysex == 1 ~ "male",
+            babysex == 2 ~ "female"),
+        babysex = as_factor(babysex)) %>% 
+
+
+    group_by(babysex) %>% 
+    count()
+```
+
+Notes:  
+
+-`delwt` -> convert `pounds` to metric `grams`  
+-`fincome` -> cut digits at 2  
+-`frace` -> convert to 6-level factor  
