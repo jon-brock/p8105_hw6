@@ -13,23 +13,67 @@ library(tidyverse)
 
 ***
 
+## Problem #1
+###### (*45 points*)
+##### *Working with linear models*  
+
+I reviewed each vector to determine what vector type each one should be when imported. There is a majority of integer values, so the `.default` value for non-specified vectors applies as such. I specified `babysex`, `frace`, `malform`, and `mrace` as `<fct>` vectors; `gaweeks`, `ppbmi`, and `smoken` are specified as `<dbl>` vectors. I will further tidy--relevel and relabel--my specified `<fct>` vectors in subsequent code.  
+
 ```{r load and tidy data}
-bw_df <- read_csv("./data/birthweight.csv", col_names = TRUE)
+bw_df <- read_csv("./data/birthweight.csv",
+                  col_names = TRUE,
+                  col_types = cols(
+                      .default = col_integer(),
+                      babysex = col_factor(),
+                      frace = col_factor(),
+                      gaweeks = col_double(),
+                      malform = col_factor(),
+                      mrace = col_factor(),
+                      ppbmi = col_double(),
+                      smoken = col_double()
+                      )
+                  )
 
-bw_df %>% 
-    mutate(
-        babysex = case_when(
-            babysex == 1 ~ "male",
-            babysex == 2 ~ "female"),
-        babysex = as_factor(babysex)) %>% 
-
-
-    group_by(babysex) %>% 
-    count()
+print(bw_df)
 ```
 
-Notes:  
 
--`delwt` -> convert `pounds` to metric `grams`  
--`fincome` -> cut digits at 2  
--`frace` -> convert to 6-level factor  
+It is rather tedious to check for `NA` values within individual vectors one at a time. So, instead, I decided to check all vectors at once by using a "soft-deprecated" `dplyr` function (`funs()`) to summarize all of the `NA` observations within each vector in my data frame. The output shows that we have `0` observations of `NA` in all of our vectors. We're good to go!  
+
+```{r checking all columns for na values, warning = FALSE}
+bw_df %>% 
+    select(everything()) %>% 
+    summarize_all(funs(sum(is.na(.))))
+```
+
+```{r eval = FALSE}
+bw_df %>% 
+    mutate(
+        babysex = 
+    )
+
+```
+
+***  
+
+## Problem #2
+###### (*35 points*)
+##### *Bootstrapping*  
+
+```{r pre-specified data import code, message = FALSE}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+***  
+
+## Return of the Bonus Content  
