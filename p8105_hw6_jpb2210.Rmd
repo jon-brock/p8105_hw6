@@ -50,13 +50,36 @@ bw_df %>%
 
 The output shows that we have `0` observations of `NA` in all of our vectors. We're good to go!  
 
-```{r eval = FALSE}
+```{r variable renaming and recoding}
 bw_df %>% 
     mutate(
-        babysex = 
-    )
-
+        baby_sex = recode(babysex, "1" = "male", "2" = "female"),
+        baby_head_cm = bhead,
+        baby_length_cm = blength,
+        baby_birthweight_cm = bwt,
+        mother_weight_grams = delwt * 453.492,
+        family_income = fincome,
+        father_race = recode(frace, "1" = "white", "2" = "black", "3" = "asian", "4" = "p_rican", "8" = "other", "9" = "unknown"),
+        gestation_age_wks = gaweeks,
+        malformations_present = recode(malform, "0" = "absent", "1" = "present"),
+        mother_menarche_age = menarche,
+        mother_height_cm = mheight * 2.54,
+        mother_delivery_age = momage,
+        mother_race = recode(mrace, "1" = "white", "2" = "black", "3" = "asian", "4" = "p_rican", "8" = "other"),
+        number_prior_births = parity,
+        number_prior_low_bwt_babies = pnumlbw,
+        number_prior_small_ga_babies = pnumsga,
+        mother_pre_pregnancy_bmi = ppbmi,
+        mother_pre_pregnancy_weight_grams = ppwt * 453.492,
+        avg_number_cigs_per_day = smoken,
+        mother_pregnancy_weight_gain_grams = wtgain * 453.492) %>% 
+    select(-c(babysex:wtgain)) %>% 
+    colnames()
 ```
+
+We have successfully recoded and renamed all `20` of our variables, and dropped the original `20` for lack of further need.  It's important to note that variable  measurements were incongruent in terms of scale -- both metric and imperial were used. To correct for this I made the necessary conversions so that all measurements are metric (i.e., weight = grams, height/length = centimeters).  
+
+Only the list of variables were printed because printing variables and their observations consumes a lot of page space.  
 
 ***  
 
