@@ -34,17 +34,21 @@ bw_df <- read_csv("./data/birthweight.csv",
                       )
                   )
 
-print(bw_df)
+bw_df
 ```
 
 
-It is rather tedious to check for `NA` values within individual vectors one at a time. So, instead, I decided to check all vectors at once by using a "soft-deprecated" `dplyr` function (`funs()`) to summarize all of the `NA` observations within each vector in my data frame. The output shows that we have `0` observations of `NA` in all of our vectors. We're good to go!  
+It is rather tedious to check for `NA` values within individual vectors one at a time. So, instead, I decided to check all vectors at once by using a "soft-deprecated" `dplyr` function (`funs()`) to summarize all of the `NA` observations within each vector in my data frame.  
 
 ```{r checking all columns for na values, warning = FALSE}
+options(tibble.width = Inf)
+
 bw_df %>% 
     select(everything()) %>% 
     summarize_all(funs(sum(is.na(.))))
 ```
+
+The output shows that we have `0` observations of `NA` in all of our vectors. We're good to go!  
 
 ```{r eval = FALSE}
 bw_df %>% 
@@ -72,6 +76,8 @@ weather_df =
     tmin = tmin / 10,
     tmax = tmax / 10) %>%
   select(name, id, everything())
+
+weather_df
 ```
 
 ***  
