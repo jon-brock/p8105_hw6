@@ -51,12 +51,13 @@ bw_df %>%
 The output shows that we have `0` observations of `NA` in all of our vectors. We're good to go!  
 
 ```{r variable renaming and recoding}
-bw_df %>% 
+bw_df <- 
+    bw_df %>% 
     mutate(
         baby_sex = recode(babysex, "1" = "male", "2" = "female"),
         baby_head_cm = bhead,
         baby_length_cm = blength,
-        baby_birthweight_cm = bwt,
+        baby_birthweight_grams = bwt,
         mother_weight_grams = delwt * 453.492,
         family_income = fincome,
         father_race = recode(frace, "1" = "white", "2" = "black", "3" = "asian", "4" = "p_rican", "8" = "other", "9" = "unknown"),
@@ -73,13 +74,25 @@ bw_df %>%
         mother_pre_pregnancy_weight_grams = ppwt * 453.492,
         avg_number_cigs_per_day = smoken,
         mother_pregnancy_weight_gain_grams = wtgain * 453.492) %>% 
-    select(-c(babysex:wtgain)) %>% 
-    colnames()
+    select(c(baby_sex:mother_pregnancy_weight_gain_grams))
+
+print(bw_df)
 ```
 
 We have successfully recoded and renamed all `20` of our variables, and dropped the original `20` for lack of further need.  It's important to note that variable  measurements were incongruent in terms of scale -- both metric and imperial were used. To correct for this I made the necessary conversions so that all measurements are metric (i.e., weight = grams, height/length = centimeters).  
 
-Only the list of variables were printed because printing variables and their observations consumes a lot of page space.  
+```{r fitting a linear model}
+jon_fit <- lm(baby_birthweight_grams ~ 
+                  gestation_age_wks +
+                  mother_weight_grams +
+                  number_prior_low_bwt_babies +
+                  avg_number_cigs_per_day,
+              data = bw_df)
+
+broom::tidy(jon_fit) %>% 
+    knitr::kable()
+```
+
 
 ***  
 
