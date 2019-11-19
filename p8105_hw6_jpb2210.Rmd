@@ -146,14 +146,16 @@ boot_strap <-
     select(r.squared, log_b0xb1)
 ```
 
-```{r density plot of r.squared values}
+```{r density plot of r.squared values, fig.width = 9, fig.asp = 0.687, dpi = 200, fig.align = 'center'}
 boot_strap %>% 
-    ggplot(aes(x = r.squared)) + geom_density()
+    ggplot(aes(x = r.squared)) + 
+    geom_density()
 ```
 
-```{r density plot of log(beta0*beta1)}
+```{r density plot of log(beta0*beta1), fig.width = 9, fig.asp = 0.687, dpi = 200, fig.align = 'center'}
 boot_strap %>% 
-    ggplot(aes(x = log_b0xb1)) + geom_density()
+    ggplot(aes(x = log_b0xb1)) +
+    geom_density()
 ```
 
 ***  
