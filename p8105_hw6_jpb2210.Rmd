@@ -5,6 +5,7 @@ output:
     github_document:
         toc: TRUE
         toc_depth: 2
+    
 ---
 
 ```{r load packages, message = FALSE}
@@ -77,7 +78,7 @@ bw_df <-
         mother_pregnancy_weight_gain_grams = wtgain * 453.492) %>% 
     select(c(baby_sex:mother_pregnancy_weight_gain_grams))
 
-print(bw_df)
+colnames(bw_df)
 ```
 
 We have successfully recoded and renamed all `20` of our variables, and dropped the original `20` for lack of further need.  It's important to note that variable  measurements were incongruent in terms of scale -- both metric and imperial were used. To correct for this I made the necessary conversions so that all measurements are metric (i.e., weight = grams, height/length = centimeters).  
@@ -110,6 +111,8 @@ bw_df %>%
 ###### (*35 points*)
 ##### *Bootstrapping*  
 
+This problem focuses on bootstrapping. First, we import a dataset from NOAA that contains the `minimum` and `maximum` temperatures for Central Park, NY from the time period 2017-01-10 through 2017-12-31.
+
 ```{r pre-specified data import code, message = FALSE}
 weather_df = 
   rnoaa::meteo_pull_monitors(
@@ -126,38 +129,67 @@ weather_df =
 weather_df
 ```
 
-```{r bootstrap linear models}
+Now we will generate 5000 bootstrap samples from the `weather_df` data frame, and fit a simple linear regression with `tmax` as the response and `tmin` as the predictor for each of the 5000 samples. We only want to look at the distribution of the R-squared value, as well as the log of the product of Beta0 and Beta1, so we will remove all other items in the resulting data frame.
+
+```{r bootstrap linear models, warning = FALSE}
+set.seed(90210) #See what I did there?
+
 boot_strap <- 
-    weather_df %>% 
-    modelr::bootstrap(n = 5000) %>% 
-    mutate(
-        models = map(strap, ~lm(tmax ~ tmin, data = .x)),
-        tidy_models = map(models, broom::tidy),
-        glance_models = map(models, broom::glance)) %>% 
-    unnest(tidy_models, glance_models) %>% 
-    select(.id, term, estimate, r.squared) %>% 
-    pivot_wider(
-        names_from = term,
-        values_from = estimate) %>% 
-    rename(
-        beta_0 = `(Intercept)`,
-        beta_1 = tmin) %>% 
-    mutate(log_b0xb1 = log(beta_0*beta_1)) %>% 
-    select(r.squared, log_b0xb1)
+  weather_df %>% 
+  modelr::bootstrap(n = 5000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x)),
+    tidy_models = map(models, broom::tidy),
+    glance_models = map(models, broom::glance)) %>% 
+  unnest(tidy_models, glance_models) %>% 
+  select(.id, term, estimate, r.squared) %>% 
+  pivot_wider(
+    names_from = term,
+    values_from = estimate) %>% 
+  rename(
+    beta_0 = `(Intercept)`,
+    beta_1 = tmin) %>% 
+  mutate(log_b0xb1 = log(beta_0*beta_1)) %>% 
+  select(r.squared, log_b0xb1)
+
+boot_strap
 ```
 
-```{r density plot of r.squared values, fig.width = 9, fig.asp = 0.687, dpi = 200, fig.align = 'center'}
+We now have our bootstrap samples of R-squared values and logs of the product of Beta0 and Beta1. Now we can generate a density plot for the values and products.
+
+```{r density plot of r.squared values, fig.width = 8, fig.height = 6, dpi = 200, fig.align = 'center'}
 boot_strap %>% 
     ggplot(aes(x = r.squared)) + 
-    geom_density()
+    geom_density(fill = "lightgreen", show.legend = FALSE) +
+    labs(
+        title = "Distribution of" ~R^2,
+        subtitle = "Based on 5000 bootstrap samples of a linear model (tmax ~ tmin)",
+        x = quote(R^2)
+    )
 ```
 
-```{r density plot of log(beta0*beta1), fig.width = 9, fig.asp = 0.687, dpi = 200, fig.align = 'center'}
+We can see from the R-squared density plot that there is a high density of R-squared values crowded around a center of R = ~0.91. As we recall from our introductory stats course(s), an R-Squared value falls between 0 and 1, and tells us how much of the variation in `y` can be explained by `x`. In this case, a vast majority of the variation in `tmax` is explained by `tmin`.  
+
+The 95% confidence interval of `R-squared` is (`r round(quantile(pull(boot_strap, r.squared), probs = c(0.025,0.975)), digits = 2)`).
+
+```{r density plot of log(beta0*beta1), fig.width = 8, fig.height = 6, dpi = 200, fig.align = 'center'}
 boot_strap %>% 
     ggplot(aes(x = log_b0xb1)) +
-    geom_density()
+    geom_density(fill = "cornflowerblue", show.legend = FALSE) +
+    labs(
+        title = "Distribution of" ~log(hat(beta)[0] %*% hat(beta)[1]),
+        subtitle = "Based on 5000 bootstrap samples of a linear model (tmax ~ tmin)",
+        x = quote(log(hat(beta)[0] %*% hat(beta)[1]))
+    )
 ```
+
+As for the density plot of $$log(\beta_1*\beta_0)$$, we see that the distribution is normal, and centered around a $$log(\beta_1*\beta_0)$$ value of ~2.025.
+
+The 95% confidence interval of $$log(\beta_1*\beta_0)$$ is (`r round(quantile(pull(boot_strap, log_b0xb1), probs = c(0.025,0.975)), digits = 2)`).  
 
 ***  
 
 ## Return of the Bonus Content  
+
+<center> ![](bonus_graph.png) </center>  
+**h/t:[Toward Data Science](https://towardsdatascience.com/10-tips-to-improve-your-plotting-f346fa468d18)**
