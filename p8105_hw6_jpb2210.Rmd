@@ -136,7 +136,7 @@ set.seed(90210) #See what I did there?
 
 boot_strap <- 
   weather_df %>% 
-  modelr::bootstrap(n = 5000) %>% 
+  bootstrap(n = 5000) %>% 
   mutate(
     models = map(strap, ~lm(tmax ~ tmin, data = .x)),
     tidy_models = map(models, broom::tidy),
@@ -183,9 +183,9 @@ boot_strap %>%
     )
 ```
 
-As for the density plot of $$log(\beta_1*\beta_0)$$, we see that the distribution is normal, and centered around a $$log(\beta_1*\beta_0)$$ value of ~2.025.
+As for the density plot of `log(beta_0 x beta_1)`, we see that the distribution is normal, and centered around a `log(beta_0 x beta_1)` value of ~2.025.
 
-The 95% confidence interval of $$log(\beta_1*\beta_0)$$ is (`r round(quantile(pull(boot_strap, log_b0xb1), probs = c(0.025,0.975)), digits = 2)`).  
+The 95% confidence interval of `log(beta_0 x beta_1)` is (`r round(quantile(pull(boot_strap, log_b0xb1), probs = c(0.025,0.975)), digits = 2)`).  
 
 ***  
 
