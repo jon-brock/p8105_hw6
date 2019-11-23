@@ -5,12 +5,12 @@ output:
     github_document:
         toc: TRUE
         toc_depth: 2
-    
 ---
 
 ```{r load packages, message = FALSE}
 library(tidyverse)
 library(modelr)
+library(mgcv)
 ```
 
 ***
@@ -38,7 +38,6 @@ bw_df <- read_csv("./data/birthweight.csv",
 
 bw_df
 ```
-
 
 It is rather tedious to check for `NA` values within individual vectors one at a time. So, instead, I decided to check all vectors at once by using a "soft-deprecated" `dplyr` function (`funs()`) to summarize all of the `NA` observations within each vector in my data frame.  
 
@@ -81,9 +80,9 @@ bw_df <-
 colnames(bw_df)
 ```
 
-We have successfully recoded and renamed all `20` of our variables, and dropped the original `20` for lack of further need.  It's important to note that variable  measurements were incongruent in terms of scale -- both metric and imperial were used. To correct for this I made the necessary conversions so that all measurements are metric (i.e., weight = grams, height/length = centimeters).  
+We have successfully recoded and renamed all `20` of our variables, and dropped the original `20` for lack of further need. It's important to note that variable  measurements were incongruent in terms of scale -- both metric and imperial were used. To correct for this I made the necessary conversions so that all measurements are metric (i.e., weight = grams, height/length = centimeters).  
 
-```{r fitting a linear model}
+```{r fitting a self-specified linear model}
 jon_fit <- lm(baby_birthweight_grams ~ 
                   gestation_age_wks +
                   mother_weight_grams +
@@ -95,6 +94,20 @@ broom::tidy(jon_fit) %>%
     knitr::kable()
 ```
 
+```{r fitting a requested linear model (A)}
+p8105_fit_1 <- lm(baby_birthweight_grams ~ baby_length_cm + gestation_age_wks, data = bw_df)
+
+broom::tidy(p8105_fit_1) %>% 
+    knitr::kable()
+``` 
+
+```{r fitting a requested linear model (B)}
+p8105_fit_2 <- lm(baby_birthweight_grams ~baby_head_cm * baby_length_cm * baby_sex, data = bw_df)
+
+broom::tidy(p8105_fit_2) %>% 
+    knitr::kable()
+``` 
+
 ```{r plotting of model, predictions, and residuals, warning = FALSE, fig.align = "center"}
 bw_df %>% 
     add_predictions(jon_fit) %>% 
@@ -102,7 +115,54 @@ bw_df %>%
     ggplot(aes(x = gestation_age_wks, y = baby_birthweight_grams)) + 
         geom_point() + 
         stat_smooth(method = "lm")
-        #geom_line(aes(y = pred), color = "red")
+```
+
+
+```{r}
+test_1 <- 
+    bw_df %>% 
+    add_predictions(jon_fit) %>% 
+    add_residuals(jon_fit) %>% 
+    select(pred, resid)
+
+test_1 %>% 
+    ggplot(aes(x = pred, y = resid)) +
+    geom_point() +
+    geom_hline(yintercept = 0, color = "red", size = 1, linetype = 2) +
+    labs(
+        title = "Versus Fits",
+        x = "Fitted Value",
+        y = "Residual")
+
+test_2 <- 
+    bw_df %>% 
+    add_predictions(p8105_fit_1) %>% 
+    add_residuals(p8105_fit_1) %>% 
+    select(pred, resid)
+
+test_2 %>% 
+    ggplot(aes(x = pred, y = resid)) +
+    geom_point() +
+    geom_hline(yintercept = 0, color = "red", size = 1, linetype = 2) +
+    labs(
+        title = "Versus Fits",
+        x = "Fitted Value",
+        y = "Residual")
+
+test_3 <- 
+    bw_df %>% 
+    add_predictions(p8105_fit_2) %>% 
+    add_residuals(p8105_fit_2) %>% 
+    select(pred, resid)
+
+test_3 %>% 
+    ggplot(aes(x = pred, y = resid)) +
+    geom_point() +
+    geom_hline(yintercept = 0, color = "red", size = 1, linetype = 2) +
+    labs(
+        title = "Versus Fits",
+        x = "Fitted Value",
+        y = "Residual")
 ```
 
 ***  
