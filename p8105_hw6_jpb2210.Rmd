@@ -77,10 +77,15 @@ bw_df <-
         mother_pregnancy_weight_gain_grams = wtgain * 453.492) %>% 
     select(c(baby_sex:mother_pregnancy_weight_gain_grams))
 
+# I am only printing the column names because the data output is excessive due to column name size
 colnames(bw_df)
 ```
 
 We have successfully recoded and renamed all `20` of our variables, and dropped the original `20` for lack of further need. It's important to note that variable  measurements were incongruent in terms of scale -- both metric and imperial were used. To correct for this I made the necessary conversions so that all measurements are metric (i.e., weight = grams, height/length = centimeters).  
+
+***
+
+Now let's fit a linear model with hypothesized predictor variables. Based on all of the previous CUMC Epidemiology courses' content, I believe that gestational age (`gestation_age_wks`), mother's weight (`mother_weight_grams`), number of prior low-birthweight babies (`number_prior_low_bwt_babies`), and average number of cigarettes smoked per day (`avg_number_cigs_per_day`) are strong predictors of the birthweight of a baby. Subsequently, we fit our linear model as such:  
 
 ```{r fitting a self-specified linear model}
 jon_fit <- lm(baby_birthweight_grams ~ 
@@ -94,6 +99,30 @@ broom::tidy(jon_fit) %>%
     knitr::kable()
 ```
 
+Now, let's plot our `jon_fit` linear model's predicted values against its residuals to see how well our model fits the data.  
+
+```{r fitting residuals against predictions, warning = FALSE, fig.width = 8, fig.height = 6, dpi = 200, fig.align = 'center'}
+predicted_vs_residuals_jon_fit <- 
+    bw_df %>% 
+    add_predictions(jon_fit) %>% 
+    add_residuals(jon_fit) %>% 
+    select(pred, resid)
+
+predicted_vs_residuals_jon_fit  %>% 
+    ggplot(aes(x = pred, y = resid)) +
+    geom_point() +
+    geom_hline(yintercept = 0, color = "red", size = 1, linetype = 2) +
+    labs(
+        title = "Versus Fits of jon_fit Linear Model",
+        x = "Fitted Value (grams)",
+        y = "Residual (grams)")
+```
+
+We can see that there is a large variance within the specified model, as many points are far from the (dotted) prediction line. Let's now compare our specified model to two additional models:  
+
+1. p8105_fit_1 = `baby_length_cm + gestation_age_wks` (main effects only)  
+1. p8105_fit_2 = `baby_head_cm * baby_length_cm * baby_sex` (main effects plus interactions between all predictors)  
+
 ```{r fitting a requested linear model (A)}
 p8105_fit_1 <- lm(baby_birthweight_grams ~ baby_length_cm + gestation_age_wks, data = bw_df)
 
@@ -102,68 +131,88 @@ broom::tidy(p8105_fit_1) %>%
 ``` 
 
 ```{r fitting a requested linear model (B)}
-p8105_fit_2 <- lm(baby_birthweight_grams ~baby_head_cm * baby_length_cm * baby_sex, data = bw_df)
+p8105_fit_2 <- lm(baby_birthweight_grams ~ baby_head_cm * baby_length_cm * baby_sex, data = bw_df)
 
 broom::tidy(p8105_fit_2) %>% 
     knitr::kable()
 ``` 
 
-```{r plotting of model, predictions, and residuals, warning = FALSE, fig.align = "center"}
-bw_df %>% 
-    add_predictions(jon_fit) %>% 
-    add_residuals(jon_fit) %>% 
-    ggplot(aes(x = gestation_age_wks, y = baby_birthweight_grams)) + 
-        geom_point() + 
-        stat_smooth(method = "lm")
-```
+I don't believe this is required (for this problem), but we can also plot these two models' predicted values against their corresponding residuals to see how well their models fit their data.  
 
-
-```{r}
-test_1 <- 
-    bw_df %>% 
-    add_predictions(jon_fit) %>% 
-    add_residuals(jon_fit) %>% 
-    select(pred, resid)
-
-test_1 %>% 
-    ggplot(aes(x = pred, y = resid)) +
-    geom_point() +
-    geom_hline(yintercept = 0, color = "red", size = 1, linetype = 2) +
-    labs(
-        title = "Versus Fits",
-        x = "Fitted Value",
-        y = "Residual")
-
-test_2 <- 
+```{r fitting residuals against predictions (A), warning = FALSE, fig.width = 8, fig.height = 6, dpi = 200, fig.align = 'center'}
+predicted_vs_residuals_p8015_fit_1 <- 
     bw_df %>% 
     add_predictions(p8105_fit_1) %>% 
     add_residuals(p8105_fit_1) %>% 
     select(pred, resid)
 
-test_2 %>% 
+predicted_vs_residuals_p8015_fit_1 %>% 
     ggplot(aes(x = pred, y = resid)) +
     geom_point() +
     geom_hline(yintercept = 0, color = "red", size = 1, linetype = 2) +
     labs(
-        title = "Versus Fits",
-        x = "Fitted Value",
-        y = "Residual")
+        title = "Versus Fits of p8105_fit_1 Linear Model",
+        x = "Fitted Value (grams)",
+        y = "Residual (grams)")
+```
 
-test_3 <- 
+```{r fitting residuals against predictions (B), warning = FALSE, fig.width = 8, fig.height = 6, dpi = 200, fig.align = 'center'}
+predicted_vs_residuals_p8015_fit_2 <- 
     bw_df %>% 
     add_predictions(p8105_fit_2) %>% 
     add_residuals(p8105_fit_2) %>% 
     select(pred, resid)
 
-test_3 %>% 
+predicted_vs_residuals_p8015_fit_2 %>% 
     ggplot(aes(x = pred, y = resid)) +
     geom_point() +
     geom_hline(yintercept = 0, color = "red", size = 1, linetype = 2) +
     labs(
-        title = "Versus Fits",
-        x = "Fitted Value",
-        y = "Residual")
+        title = "Versus Fits of p8105_fit_2 Linear Model",
+        x = "Fitted Value (grams)",
+        y = "Residual (grams)")
 ```
+
+Based on those plots, it appears as though the second model (`p8105_fit_1`) has the least error variance. But let us use cross validation methods in order to check all of our models for the best fit. We start by producing 500 training/testing data splits of our original data `bw_df`. [Note: I chose `500` as the `n` because I was not sure what number to select. It appeared to be a user-specified value.]  
+
+```{r generate test/train datasets}
+cv_df <-
+    crossv_mc(bw_df, 500)
+```
+
+Now, we will generate fitted models for each of the three linear models specified, as well as generate the root mean squared error `RMSE` for each of the fitted models.  
+
+```{r generate rmse values for iterated linear models, warning = FALSE}
+cv_df <- 
+    cv_df %>% 
+    mutate(jon_model = map(train, ~jon_fit, data = .x),
+           p8105_1_model = map(train, ~p8105_fit_1, data = .x),
+           p8105_2_model = map(train, ~p8105_fit_2, data = .x)) %>% 
+    mutate(rmse_jon = map2_dbl(jon_model, test, ~rmse(model = .x, data = .y)),
+           rmse_p8105_1 = map2_dbl(p8105_1_model, test, ~rmse(model = .x, data =.y)),
+           rmse_p8105_2 = map2_dbl(p8105_2_model, test, ~rmse(model = .x, data = .y)))
+```
+
+We can now plot out results to visually inspect which model has the best fitting.  
+
+```{r generate plot of model comparisons, fig.width = 8, fig.height = 6, dpi = 200, fig.align = 'center'}
+cv_df %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + 
+    geom_violin(fill = "tan1") +
+    labs(
+        title = "Cross Validation of Specified Models",
+        x = "Model",
+        y = "Root Mean Squared Error (RMSE)")
+```
+
+Even though our predicted vs. residuals plots indicated that `p8105_1` had the least amount of error variance, we see from our cross validation plot that the `p8105_2` model has the best `RMSE` and is the best fit. Recall that this model has both our main effects, as well as the interaction between all three predictors, included.  
 
 ***  
 
@@ -221,6 +270,7 @@ We now have our bootstrap samples of R-squared values and logs of the product of
 boot_strap %>% 
     ggplot(aes(x = r.squared)) + 
     geom_density(fill = "lightgreen", show.legend = FALSE) +
+    geom_vline(xintercept = 0.913, color = "red", size = 1, linetype = 2) +
     labs(
         title = "Distribution of" ~R^2,
         subtitle = "Based on 5000 bootstrap samples of a linear model (tmax ~ tmin)",
@@ -228,7 +278,7 @@ boot_strap %>%
     )
 ```
 
-We can see from the R-squared density plot that there is a high density of R-squared values crowded around a center of R = ~0.91. As we recall from our introductory stats course(s), an R-Squared value falls between 0 and 1, and tells us how much of the variation in `y` can be explained by `x`. In this case, a vast majority of the variation in `tmax` is explained by `tmin`.  
+We can see from the R-squared density plot that there is a high density of R-squared values crowded around a center of R = ~0.913. As we recall from our introductory stats course(s), an R-Squared value falls between 0 and 1, and tells us how much of the variation in `y` can be explained by `x`. In this case, a vast majority of the variation in `tmax` is explained by `tmin`.  
 
 The 95% confidence interval of `R-squared` is (`r round(quantile(pull(boot_strap, r.squared), probs = c(0.025,0.975)), digits = 2)`).
 
@@ -236,6 +286,7 @@ The 95% confidence interval of `R-squared` is (`r round(quantile(pull(boot_strap
 boot_strap %>% 
     ggplot(aes(x = log_b0xb1)) +
     geom_density(fill = "cornflowerblue", show.legend = FALSE) +
+    geom_vline(xintercept = 2.012, color = "orange4", size = 1, linetype = 2) +
     labs(
         title = "Distribution of" ~log(hat(beta)[0] %*% hat(beta)[1]),
         subtitle = "Based on 5000 bootstrap samples of a linear model (tmax ~ tmin)",
@@ -243,7 +294,7 @@ boot_strap %>%
     )
 ```
 
-As for the density plot of `log(beta_0 x beta_1)`, we see that the distribution is normal, and centered around a `log(beta_0 x beta_1)` value of ~2.025.
+As for the density plot of `log(beta_0 x beta_1)`, we see that the distribution is normal, and centered around a `log(beta_0 x beta_1)` value of ~2.012.
 
 The 95% confidence interval of `log(beta_0 x beta_1)` is (`r round(quantile(pull(boot_strap, log_b0xb1), probs = c(0.025,0.975)), digits = 2)`).  
 
